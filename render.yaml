@@ -2,6 +2,7 @@ services:
   - type: web
     name: fastapi-tomek
     env: python
-    buildCommand: "pip install fastapi uvicorn openai"
+    buildCommand: "pip install -r requirements.txt"
+
     startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
 # dodano bibliotekę openai
