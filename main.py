@@ -6,8 +6,8 @@ import openai
 app = FastAPI()
 
 # === 🔐 Wklej swój klucz API do OpenAI tutaj:
-openai.api_key = "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
-"
+openai.api_key = "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"
+
 
 # === 🧠 Dane wejściowe od użytkownika
 class DaneAnalizy(BaseModel):
