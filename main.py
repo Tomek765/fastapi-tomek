@@ -21,13 +21,16 @@ def get_price(ticker):
 
 @app.post("/analiza")
 async def analiza_spolki(data: RequestData):
-    price = get_price(data.ticker)
-    prompt = f"Analizuj GPW: {data.ticker}, cena: {price} zł, okres: {data.okres}. Czy warto kupić?"
-    response = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=[
-            {"role": "system", "content": "Jesteś analitykiem GPW."},
-            {"role": "user", "content": prompt}
-        ]
-    )
-    return {"analiza": response['choices'][0]['message']['content']}
+    try:
+        price = get_price(data.ticker)
+        prompt = f"Analizuj GPW: {data.ticker}, cena: {price} zł, okres: {data.okres}. Czy warto kupić?"
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "Jesteś analitykiem GPW."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        return {"analiza": response['choices'][0]['message']['content']}
+    except Exception as e:
+        return {"error": str(e)}
