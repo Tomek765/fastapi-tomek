@@ -3,55 +3,97 @@ from pydantic import BaseModel
 import requests
 import openai
 
-app = FastAPI()
+openai.api_key = "from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+import requests
+import openai
 
-# === 🔐 Wklej swój klucz API do OpenAI tutaj:
+openai.api_key = "from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+import requests
+import openai
+
 openai.api_key = "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"
 
+app = FastAPI()
 
-# === 🧠 Dane wejściowe od użytkownika
-class DaneAnalizy(BaseModel):
+class RequestData(BaseModel):
     ticker: str
     okres: str = "7 dni"
 
-# === 📈 Pobieranie danych ze stooq
-def pobierz_cene_akcji(ticker: str) -> float:
-    url = f"https://stooq.pl/q/l/?s={ticker.lower()}.pl&f=sd2t2ohlcv&h&e=csv"
-    response = requests.get(url)
-    if response.status_code != 200:
-        raise HTTPException(status_code=500, detail="Błąd pobierania danych ze stooq.")
-    linie = response.text.splitlines()
-    if len(linie) < 2 or "N/D" in linie[1]:
-        raise HTTPException(status_code=404, detail="Brak danych dla tej spółki.")
-    dane = linie[1].split(",")
-    return float(dane[6])  # Close price
+def get_price(ticker):
+    url = f"https://query1.finance.yahoo.com/v7/finance/quote?symbols={ticker}.WA"
+    r = requests.get(url).json()
+    try:
+        return r['quoteResponse']['result'][0]['regularMarketPrice']
+    except:
+        raise HTTPException(status_code=404, detail="Nie znaleziono spółki.")
 
-# === 🤖 Analiza z GPT
-def analiza_gpt(ticker: str, cena: float, okres: str) -> str:
-    prompt = (
-        f"Jesteś analitykiem finansowym. Przeanalizuj spółkę giełdową {ticker} "
-        f"na podstawie jej aktualnej ceny {cena} zł i napisz krótką prognozę inwestycyjną "
-        f"na okres {okres}. Zastosuj styl zrozumiały, dynamiczny, z podsumowaniem w punktach."
-    )
-    odpowiedz = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.7
-    )
-    return odpowiedz['choices'][0]['message']['content']
-
-# === 🚀 Endpoint główny
 @app.post("/analiza")
-def analizuj(dane: DaneAnalizy):
-    cena = pobierz_cene_akcji(dane.ticker)
-    wynik = analiza_gpt(dane.ticker, cena, dane.okres)
-    return {
-        "spolka": dane.ticker,
-        "cena": f"{cena:.2f} zł",
-        "analiza": wynik
-    }
+async def analiza_spolki(data: RequestData):
+    price = get_price(data.ticker)
+    prompt = f"Analizuj GPW: {data.ticker}, cena: {price} zł, okres: {data.okres}. Czy warto kupić?"
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "Jesteś profesjonalnym analitykiem giełdowym."},
+            {"role": "user", "content": prompt}
+        ]
+    )
+    return {"analiza": response['choices'][0]['message']['content']}
+"
 
-# === 🧪 Testowy GET
-@app.get("/")
-def przywitanie():
-    return {"message": "Działa! To jest Tomek – wersja FastAPI z GPT i Stooq"}
+app = FastAPI()
+
+class RequestData(BaseModel):
+    ticker: str
+    okres: str = "7 dni"
+
+def get_price(ticker):
+    url = f"https://query1.finance.yahoo.com/v7/finance/quote?symbols={ticker}.WA"
+    r = requests.get(url).json()
+    try:
+        return r['quoteResponse']['result'][0]['regularMarketPrice']
+    except:
+        raise HTTPException(status_code=404, detail="Nie znaleziono spółki.")
+
+@app.post("/analiza")
+async def analiza_spolki(data: RequestData):
+    price = get_price(data.ticker)
+    prompt = f"Analizuj GPW: {data.ticker}, cena: {price} zł, okres: {data.okres}. Czy warto kupić?"
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "Jesteś profesjonalnym analitykiem giełdowym."},
+            {"role": "user", "content": prompt}
+        ]
+    )
+    return {"analiza": response['choices'][0]['message']['content']}
+"
+
+app = FastAPI()
+
+class RequestData(BaseModel):
+    ticker: str
+    okres: str = "7 dni"
+
+def get_price(ticker):
+    url = f"https://query1.finance.yahoo.com/v7/finance/quote?symbols={ticker}.WA"
+    r = requests.get(url).json()
+    try:
+        return r['quoteResponse']['result'][0]['regularMarketPrice']
+    except:
+        raise HTTPException(status_code=404, detail="Nie znaleziono spółki.")
+
+@app.post("/analiza")
+async def analiza_spolki(data: RequestData):
+    price = get_price(data.ticker)
+    prompt = f"Analizuj GPW: {data.ticker}, cena: {price} zł, okres: {data.okres}. Czy warto kupić?"
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "Jesteś profesjonalnym analitykiem giełdowym."},
+            {"role": "user", "content": prompt}
+        ]
+    )
+    return {"analiza": response['choices'][0]['message']['content']}
