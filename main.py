@@ -1,33 +1,57 @@
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-import random
+import requests
+import openai
 
 app = FastAPI()
 
-# CORS – żeby frontend mógł gadać z backendem
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# === 🔐 Wklej swój klucz API do OpenAI tutaj:
+openai.api_key = "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
+"
 
+# === 🧠 Dane wejściowe od użytkownika
 class DaneAnalizy(BaseModel):
     ticker: str
-    okres: str
+    okres: str = "7 dni"
 
+# === 📈 Pobieranie danych ze stooq
+def pobierz_cene_akcji(ticker: str) -> float:
+    url = f"https://stooq.pl/q/l/?s={ticker.lower()}.pl&f=sd2t2ohlcv&h&e=csv"
+    response = requests.get(url)
+    if response.status_code != 200:
+        raise HTTPException(status_code=500, detail="Błąd pobierania danych ze stooq.")
+    linie = response.text.splitlines()
+    if len(linie) < 2 or "N/D" in linie[1]:
+        raise HTTPException(status_code=404, detail="Brak danych dla tej spółki.")
+    dane = linie[1].split(",")
+    return float(dane[6])  # Close price
+
+# === 🤖 Analiza z GPT
+def analiza_gpt(ticker: str, cena: float, okres: str) -> str:
+    prompt = (
+        f"Jesteś analitykiem finansowym. Przeanalizuj spółkę giełdową {ticker} "
+        f"na podstawie jej aktualnej ceny {cena} zł i napisz krótką prognozę inwestycyjną "
+        f"na okres {okres}. Zastosuj styl zrozumiały, dynamiczny, z podsumowaniem w punktach."
+    )
+    odpowiedz = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.7
+    )
+    return odpowiedz['choices'][0]['message']['content']
+
+# === 🚀 Endpoint główny
+@app.post("/analiza")
+def analizuj(dane: DaneAnalizy):
+    cena = pobierz_cene_akcji(dane.ticker)
+    wynik = analiza_gpt(dane.ticker, cena, dane.okres)
+    return {
+        "spolka": dane.ticker,
+        "cena": f"{cena:.2f} zł",
+        "analiza": wynik
+    }
+
+# === 🧪 Testowy GET
 @app.get("/")
 def przywitanie():
-    return {"message": "Działa! To jest Tomek – wersja FastAPI"}
-
-@app.post("/analiza")
-def analiza_spolki(dane: DaneAnalizy):
-    ticker = dane.ticker
-    okres = dane.okres
-
-    # PRZYKŁADOWA ANALIZA (tu wstawisz GPT lub prawdziwe dane później)
-    odpowiedz = f"Analiza spółki **{ticker}** za okres **{okres}**: \n- Cena: {round(random.uniform(10, 200), 2)} zł\n- Prognoza: 🟢 Pozytywna (demo)"
-
-    return {"analiza": odpowiedz}
+    return {"message": "Działa! To jest Tomek – wersja FastAPI z GPT i Stooq"}
