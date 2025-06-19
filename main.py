@@ -3,7 +3,8 @@ from pydantic import BaseModel
 import requests
 import openai
 
-openai.api_key = "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"
+openai.api_key = "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"
+
 
 app = FastAPI()
 
